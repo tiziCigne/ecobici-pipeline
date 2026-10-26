@@ -1,0 +1,12 @@
+# Datos: pesados y regenerables con "python main.py", no se versionan
+data/raw/
+data/bronze/
+data/silver/
+
+# Gold: se ignoran las tablas, pero se conservan los reportes
+data/gold/*
+!data/gold/reportes/
+
+# Python
+__pycache__/
+.venv/
