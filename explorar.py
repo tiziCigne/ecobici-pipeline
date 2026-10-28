@@ -1,6 +1,6 @@
 """
 explorar.py - Tarea 1: exploración de los archivos de Ecobici.
-Solo LEE data/raw/DatosEcobici.zip: no extrae, no modifica ni mueve nada.
+Solo LEE los archivos de data/raw/: no extrae, no modifica ni mueve nada.
 """
 
 import io
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-RUTA_ZIP = Path("data/raw/DatosEcobici.zip")
+RUTA_RAW = Path("data/raw")
 SALIDA = Path("exploracion_salida.txt")
 
 
@@ -31,9 +31,13 @@ def listar_zip(zf, nivel=0, cadena=(), csvs=None):
 
 
 def abrir(cadena):
-    """Abre un CSV en modo lectura, entrando en los ZIP anidados si hace falta."""
-    zf = zipfile.ZipFile(RUTA_ZIP)
-    for nombre_zip in cadena[:-1]:
+    """Abre un CSV en modo lectura. cadena[0] es un archivo de data/raw/; si es un ZIP,
+    el resto de la cadena indica cómo llegar al CSV dentro de él."""
+    archivo = RUTA_RAW / cadena[0]
+    if len(cadena) == 1:
+        return open(archivo, "rb")  # CSV suelto en data/raw/
+    zf = zipfile.ZipFile(archivo)
+    for nombre_zip in cadena[1:-1]:
         zf = zipfile.ZipFile(io.BytesIO(zf.read(nombre_zip)))
     return zf.open(cadena[-1])
 
@@ -74,16 +78,19 @@ def analizar(cadena):
     print(f"Separador: {sep!r}   Encoding: {encoding}")
     print("Columnas:", list(df.columns))
 
-    # Las 3 primeras filas muestran ejemplos crudos de fecha, hora, duración e id de usuario.
+    # No sabemos de antemano qué columnas trae cada archivo: mostramos las 3 primeras
+    # filas completas para ver los nombres y valores reales (fechas, duración, ids, etc.).
     print("\nPrimeras 3 filas, tal cual vienen:")
     print(df.head(3).T.to_string())
 
+    # Atajo: buscamos columnas de género y edad por palabras probables en el nombre.
+    # Si se llaman de otra forma, no se imprimen y lo revisamos a mano con la lista de columnas.
     for col in df.columns:
         nombre = col.lower()
-        if "genero" in nombre or "género" in nombre or "gender" in nombre:
+        if any(palabra in nombre for palabra in ("genero", "género", "gender", "sexo")):
             print(f"\nvalue_counts de {col!r}:")
             print(df[col].value_counts().to_string())
-        if "edad" in nombre or "age" in nombre:
+        if any(palabra in nombre for palabra in ("edad", "age")):
             print(f"\nEjemplos de {col!r}:", df[col].head(10).tolist())
 
     print("\nContando filas (puede tardar)...")
@@ -107,9 +114,16 @@ class Tee:
 
 def main():
     pd.set_option("display.width", 200)
-    print("CONTENIDO DE", RUTA_ZIP.name)
-    with zipfile.ZipFile(RUTA_ZIP) as zf:
-        csvs = listar_zip(zf)
+    print("CONTENIDO DE", RUTA_RAW)
+    csvs = []
+    for archivo in sorted(RUTA_RAW.iterdir()):
+        print(f"{archivo.name}  ({archivo.stat().st_size / 1024**2:.1f} MB)")
+        if archivo.suffix.lower() == ".zip":
+            with zipfile.ZipFile(archivo) as zf:
+                listar_zip(zf, nivel=1, cadena=(archivo.name,), csvs=csvs)
+        elif archivo.suffix.lower() == ".csv":
+            csvs.append((archivo.name,))
+
     for cadena in csvs:
         try:
             analizar(cadena)

@@ -77,3 +77,11 @@ usuarios vienen como CSV sueltos. No faltan archivos ni hay archivos de más.
 **Volumen**
 - La cantidad de viajes varía mucho entre años: 596.807 en 2016, 6.217.004 en
   2019 y 3.559.284 en 2024.
+
+## 2. Decisiones tomadas
+  - **Ubicación de los archivos originales.** La cátedra entregó un único ZIP
+  (`DatosEcobici.zip`) con los 6 archivos adentro. Saqué esos 6 archivos a
+  `data/raw/` sin descomprimir los ZIP de recorridos, para que la carpeta quede
+  igual que si se hubieran descargado del portal, como supone el enunciado.
+  Verifiqué con `explorar.py` que las columnas y las cantidades de filas no
+  cambiaron.
